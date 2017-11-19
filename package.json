@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
+    "del-cli": "^1.1.0",
+    "npm-run-all": "^4.1.2",
+    "watchify": "^3.9.0"
+  },
+  "scripts": {
+    "build": "babel src -w --out-dir lib",
+    "clean": "del-cli dist lib -f",
+    "watch": "watchify lib/index.js -o dist/index.js",
+    "start": "run-p build watch"
+  }
+}
