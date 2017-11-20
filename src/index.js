@@ -55,7 +55,7 @@ const elem2 = (
         onKeyPress={handleKeyPress}
         disabled
       />
-      <ul className="list">
+      <ul>
         <li>Check email</li>
         <li>Finish project 1</li>
       </ul>

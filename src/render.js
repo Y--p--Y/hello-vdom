@@ -21,25 +21,71 @@ export function h(type, props, ...children) {
     return prop.replace(/^on/, '').toLocaleLowerCase();
   }
 
+  function isCustomProp(name) {
+    return false;
+  }
+
+  function removeBooleanProp(elem, name) {
+    elem.setAttribute(name, false);
+    elem[name] = false;
+  }
+
+  function removeProp(elem, name, oldVal) {
+    if (isCustomProp(name)) {
+      return;
+    } else if (name === 'className') {
+      elem.removeAttribute('class');
+    } else if (isEventListener(name)) { // event listener
+      elem.removeEventListener(extractEventName(key));
+    } else if (typeof oldVal === 'boolean') {
+      removeBooleanProp(elem, name);
+    } else {
+      elem.removeAttribute(name);
+    }
+  }
+
+  function setProp(elem, name, value) {
+    if (isCustomProp(name)) {
+      return;
+    } else if (name === 'className') { // className, don't setAttribute
+      elem.className = value;
+    } else if (isEventListener(name)) { // event listener
+      elem.addEventListener(extractEventName(name), value);
+    } else if (typeof value === 'object') { // normal attributes
+      elem.setAttribute(name,
+        Object.keys(value).reduce((acc, prop) => `${acc};${prop}:${value[prop]}`, ''));
+    } else {
+      elem.setAttribute(name, value);
+      // bool value
+      if (typeof value === 'boolean') {
+        elem[name] = value;
+      }
+    }
+  }
+
   function setProps(elem, props) {
     Object.keys(props).forEach((key) => {
-      // TODO: is custom props
-      // TODO: diff props
-      // TODO: remove unused event listener
-      const val = props[key];
-      if (key === 'className') { // className, don't setAttribute
-        elem.className = val;
-      } else if (isEventListener(key)) { // event listener
-        elem.addEventListener(extractEventName(key), val);
-      } else if (typeof val === 'object') { // normal attributes
-        elem.setAttribute(key, Object.keys(val).reduce((acc, prop) => `${acc};${prop}:${val[prop]}`, ''));
-      } else {
-        elem.setAttribute(key, val);
-        // bool value
-        if (typeof val === 'boolean') {
-          elem[key] = val;
-        }
+      setProp(elem, key, props[key]);
+    });
+  }
+
+  function updateProp(elem, prop, newVal, oldVal) {
+    if (!newVal) {
+      removeProp(elem, prop, oldVal);
+    } else if (oldVal && isEventListener(name)) { // event listener
+      if (newVal != oldVal) {
+        removeProp(elem, props, oldVal);
+        setProp(elem, props, newVal);
       }
+    } else {
+      setProp(elem, prop, newVal);
+    }
+  }
+
+  function updateProps(elem, newProps, oldProps) {
+    const props = Object.assign({}, newProps, oldProps);
+    Object.keys(props).forEach((prop) => {
+      updateProp(elem, prop, newProps[prop], oldProps[prop]);
     });
   }
   
@@ -85,17 +131,20 @@ export function h(type, props, ...children) {
         parent.childNodes[index],
       );
     } else if (newVdom.type) {
+      const elem = parent.childNodes[index];
+      // update props
+      updateProps(elem, newVdom.props, oldVdom.props);
+
       // nothing changes, update childNodes
       const newChildren = newVdom.children;
       const oldChildren = oldVdom.children;
       const len = Math.max(newChildren.length, oldChildren.length);
 
-      console.log('next parent',parent.childNodes[index], index,
-        ' which corresponds to', newVdom);
+      console.log('next parent', elem, index, ' which corresponds to', newVdom);
       for (let i = 0; i < len; i++) {
         // TODO: use key to identify rather then index
         render(
-          parent.childNodes[index],
+          elem,
           newChildren[i],
           oldChildren[i],
           i
